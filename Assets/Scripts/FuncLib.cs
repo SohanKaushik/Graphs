@@ -3,9 +3,9 @@ using UnityEngine;
 public static class FunctionLibrary
 {
     public delegate Vector3 Function(float u, float v, float t, float s);
-    static Function[] functions = { wave, mul_wave, ripple };
+    static Function[] functions = { wave, mul_wave, ripple, sphere, torus};
 
-    public enum FunctionName { wave, MultiWave, Ripple }
+    public enum FunctionName { Wave, MultiWave, Ripple, Sphere, Torus}
 
     public static Function GetFunction(FunctionName name)
     {
@@ -48,5 +48,29 @@ public static class FunctionLibrary
         _ripple.y /= (1f + 10f * d);
         _ripple.z = v;
         return _ripple;
+    }
+
+    public static Vector3 sphere(float u, float v, float t, float s)
+    {
+        Vector3 _sphere;
+
+        float r = 0.9f + 0.1f * Mathf.Sin(Mathf.PI * (6f * u + 4f * v + t));
+        _sphere.x = r * Mathf.Sin(Mathf.PI * u + t);
+        _sphere.y = Mathf.Sin(Mathf.PI * 0.5f * v);
+        _sphere.z = r * Mathf.Cos(Mathf.PI * u + t);
+        return _sphere;
+    }
+
+    public static Vector3 torus(float u, float v, float t, float sp)
+    {
+        float r1 = 0.7f + 0.1f * Mathf.Sin(Mathf.PI * (6f * u + 0.5f * t));
+        float r2 = 0.15f + 0.05f * Mathf.Sin(Mathf.PI * (8f * u + 4f * v + 2f * t));
+        float s = r1 + r2 * Mathf.Cos(Mathf.PI * v);
+
+        Vector3 _torus;
+        _torus.x = s * Mathf.Sin(Mathf.PI * u);
+        _torus.y = r2 * Mathf.Sin(Mathf.PI * v);
+        _torus.z = s * Mathf.Cos(Mathf.PI * u);
+        return _torus;
     }
 }

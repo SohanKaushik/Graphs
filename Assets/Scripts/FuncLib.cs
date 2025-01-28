@@ -1,18 +1,26 @@
+using UnityEditor;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 public static class FunctionLibrary
 {
     public delegate Vector3 Function(float u, float v, float t, float s);
-    static Function[] functions = { wave, mul_wave, ripple, sphere, torus};
+    static Function[] functions = { wave1, mul_wave, ripple, sphere, torus};
 
-    public enum FunctionName { Wave, MultiWave, Ripple, Sphere, Torus}
+    public enum FunctionType { Wave, MultiWave, Ripple, Sphere, Torus}
 
-    public static Function GetFunction(FunctionName name)
+    public static Function GetFunction(FunctionType name)
     {
-        return functions[(int)name];
+        int index = (int)name;
+
+        if(index >= functions.Length)
+        {
+            index = index % functions.Length;
+        }
+        return functions[index];
     }
 
-    public static Vector3 wave(float u ,float v , float t , float s)
+    public static Vector3 wave1(float u ,float v , float t , float s)
     {
         Vector3 _wave;
         _wave.x = u;
@@ -72,5 +80,66 @@ public static class FunctionLibrary
         _torus.y = r2 * Mathf.Sin(Mathf.PI * v);
         _torus.z = s * Mathf.Cos(Mathf.PI * u);
         return _torus;
+    }
+
+    public static Vector3 random_wave(float u, float v, float time, float frequency, float amplitude)
+    {
+        Vector3 wave;
+        wave.x = u;
+        float sfrequency = Random.Range(0.5f, 5f);
+        float samplitude = Random.Range(0.1f, 1f);
+        wave.y = samplitude * Mathf.Sin(sfrequency * (u + v) - time);
+
+
+        wave.z = v;
+        return wave;
+    }  
+    
+    public static Vector3 random(float u, float v, float speed, float time)
+    {
+        Vector3 wave;
+        wave.x = u;
+        wave.y = Mathf.PerlinNoise((u + v) * Mathf.PI, time * speed); 
+        wave.z = v;
+        return wave;
+    }
+
+    public static Vector3 GetRandomWave(float u, float v, float time, float speed, float elapsed, float duration)
+    {
+        //elapsed += Time.deltaTime;
+
+        //// Elapsing time
+        //if(elapsed >= duration)
+        //{
+        //    current_wave = (FunctionType)Random.Range(0, 2);
+        //    Debug.Log(current_wave);
+        //    elapsed = 0.0f;
+        //}
+
+        // calling funciton
+        //switch (current_wave) {
+        //    case FunctionType.Ripple:
+        //        return ripple(u, v, time, speed);
+        //    case FunctionType.Torus:
+        //        return torus(u, v, time, speed);
+        //    default:
+        //        return Vector3.zero; // Default fallback
+        //}
+        if (elapsed >= duration)
+        {
+            Debug.Log($"Action triggered after {duration} seconds");
+            elapsed = 0f;
+        }
+
+        return ripple(u, v, time, speed);
+        
+    }
+
+    public static Vector3 morph(float u, float v, float time, float speed, Function from, Function to, float progress)
+    {
+        return Vector3.LerpUnclamped(
+            from(u, v, time, speed),
+            to(u, v, time, speed),
+            Mathf.SmoothStep(0f, 1f, progress));
     }
 }

@@ -1,0 +1,36 @@
+#pragma kernel CSMain
+
+RWStructuredBuffer<float3> positions;
+
+
+int resolution;
+float speed;
+float time;
+
+float3 Torus(float u, float v)
+{
+    // Torus equation parameters
+    float R = 1.0f; // Major radius
+    float r = 0.3f; // Minor radius
+
+    // Compute torus position
+    float x = (R + r * cos(v)) * cos(u);
+    float y = (R + r * cos(v)) * sin(u);
+    float z = r * sin(v);
+
+    return float3(x, y, z);
+}
+
+[numthreads(64, 1, 1)] // Number of threads per group
+void CSMain(uint3 id : SV_DispatchThreadID)
+{
+    uint index = id.x + id.y * resolution; // Flatten 2D grid into 1D index
+
+    // Convert id.x and id.y to u, v parameters in the torus equation
+    float step = 2.0f / (resolution - 1);
+    float u = (id.x / float(resolution)) * 2.0f * 3.14159f; // From 0 to 2*pi
+    float v = (id.y / float(resolution)) * 2.0f * 3.14159f; // From 0 to 2*pi
+
+    // Calculate the torus position and store it
+    positions[index] = Torus(u, v);
+}

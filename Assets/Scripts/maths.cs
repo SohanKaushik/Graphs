@@ -1,11 +1,9 @@
-using UnityEditor;
 using UnityEngine;
-using UnityEngine.Rendering;
 
 public static class FunctionLibrary
 {
     public delegate Vector3 Function(float u, float v, float t, float s);
-    static Function[] functions = { wave1, mul_wave, ripple, sphere, torus};
+    static Function[] functions = { ripple, torus, helix, terrain, sphere, checkerboardWave};
 
     public enum FunctionType { Wave, MultiWave, Ripple, Sphere, Torus}
 
@@ -19,7 +17,16 @@ public static class FunctionLibrary
         }
         return functions[index];
     }
-
+    public static Vector3 sphere(float u, float v, float t, float speed)
+    {
+        float r = 0.9f + 0.1f * Mathf.Sin(Mathf.PI * (6f * u + 4f * v + t));
+        float s = r * Mathf.Cos(0.5f * Mathf.PI * v);
+        Vector3 p;
+        p.x = s * Mathf.Sin(Mathf.PI * u);
+        p.y = r * Mathf.Sin(0.5f * Mathf.PI * v);
+        p.z = s * Mathf.Cos(Mathf.PI * u);
+        return p;
+    }
     public static Vector3 wave1(float u ,float v , float t , float s)
     {
         Vector3 _wave;
@@ -58,17 +65,6 @@ public static class FunctionLibrary
         return _ripple;
     }
 
-    public static Vector3 sphere(float u, float v, float t, float s)
-    {
-        Vector3 _sphere;
-
-        float r = 0.9f + 0.1f * Mathf.Sin(Mathf.PI * (6f * u + 4f * v + t));
-        _sphere.x = r * Mathf.Sin(Mathf.PI * u + t);
-        _sphere.y = Mathf.Sin(Mathf.PI * 0.5f * v);
-        _sphere.z = r * Mathf.Cos(Mathf.PI * u + t);
-        return _sphere;
-    }
-
     public static Vector3 torus(float u, float v, float t, float sp)
     {
         float r1 = 0.7f + 0.1f * Mathf.Sin(Mathf.PI * (6f * u + 0.5f * t));
@@ -82,57 +78,43 @@ public static class FunctionLibrary
         return _torus;
     }
 
-    public static Vector3 random_wave(float u, float v, float time, float frequency, float amplitude)
+    public static Vector3 helix(float u, float v, float time, float speed)
     {
-        Vector3 wave;
-        wave.x = u;
-        float sfrequency = Random.Range(0.5f, 5f);
-        float samplitude = Random.Range(0.1f, 1f);
-        wave.y = samplitude * Mathf.Sin(sfrequency * (u + v) - time);
-
-
-        wave.z = v;
-        return wave;
-    }  
-    
-    public static Vector3 random(float u, float v, float speed, float time)
-    {
-        Vector3 wave;
-        wave.x = u;
-        wave.y = Mathf.PerlinNoise((u + v) * Mathf.PI, time * speed); 
-        wave.z = v;
-        return wave;
+        Vector3 helix;
+        helix.x = Mathf.Sin(Mathf.PI * (u + time * speed));
+        helix.y = v; // Controls the height
+        helix.z = Mathf.Cos(Mathf.PI * (u + time * speed));
+        return helix;
     }
 
-    public static Vector3 GetRandomWave(float u, float v, float time, float speed, float elapsed, float duration)
+    public static Vector3 waveCascade(float u, float v, float time, float speed)
     {
-        //elapsed += Time.deltaTime;
+        Vector3 cascade;
+        cascade.x = u;
+        cascade.y = Mathf.Sin(Mathf.PI * (u + time * speed)) + Mathf.Cos(2f * Mathf.PI * (v + 0.5f * time * speed));
+        cascade.z = v;
+        return cascade;
+    }
 
-        //// Elapsing time
-        //if(elapsed >= duration)
-        //{
-        //    current_wave = (FunctionType)Random.Range(0, 2);
-        //    Debug.Log(current_wave);
-        //    elapsed = 0.0f;
-        //}
 
-        // calling funciton
-        //switch (current_wave) {
-        //    case FunctionType.Ripple:
-        //        return ripple(u, v, time, speed);
-        //    case FunctionType.Torus:
-        //        return torus(u, v, time, speed);
-        //    default:
-        //        return Vector3.zero; // Default fallback
-        //}
-        if (elapsed >= duration)
-        {
-            Debug.Log($"Action triggered after {duration} seconds");
-            elapsed = 0f;
-        }
+    public static Vector3 terrain(float u, float v, float time, float speed)
+    {
+        Vector3 terrain;
+        terrain.x = u;
+        terrain.y = Mathf.PerlinNoise(u * speed, v * speed + time);
+        terrain.z = v;
+        return terrain;
+    }
+    public static Vector3 checkerboardWave(float u, float v, float time, float speed)
+    {
+        float checker = Mathf.Sin(u) * Mathf.Sin(v); // Checkerboard pattern
 
-        return ripple(u, v, time, speed);
-        
+        Vector3 wave;
+        wave.x = u;
+        wave.y = checker * Mathf.Sin(Mathf.PI * (u + v + time * speed)); // Combine with sine wave
+        wave.z = v;
+
+        return wave;
     }
 
     public static Vector3 morph(float u, float v, float time, float speed, Function from, Function to, float progress)

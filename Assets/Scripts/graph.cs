@@ -1,9 +1,14 @@
+using System.Threading;
+using System.Xml.Schema;
+using Unity.Mathematics;
+using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.UIElements;
 
 public class Graph : MonoBehaviour
 {
-    [SerializeField]
-    Transform pointPrefab;
+    [SerializeField] Transform m_prefab;
+    [SerializeField] ComputeShader shader;
 
     [SerializeField]
     float size, speed;
@@ -17,6 +22,9 @@ public class Graph : MonoBehaviour
 
 
     [SerializeField]
+    bool parallelism = false;
+
+    [SerializeField]
     FunctionLibrary.FunctionType type;
 
 
@@ -25,45 +33,71 @@ public class Graph : MonoBehaviour
     bool transitioning;
     Transform[] points;
 
+
+    // Compute Shader Variables
+    private ComputeBuffer buffer_position;
+    private ComputeBuffer buffer_scale;
+    private int kernel;
+    private float3[] positions;
+
+    private int total;
+    private float step;
+
     void Awake()
     {
-        float step = 2f / (resolution - 1);        // making spaces
-        var scale = Vector3.one * step;             // scaling based on resolution
+        total = resolution * resolution;
+        points = new Transform[total];         // matrix x matrix = 2D
+    }
 
-        points = new Transform[resolution * resolution];         // matrix x matrix = 2D
+    void Start()
+    {
+        step = 2f / (resolution - 1);
+        var scale = Vector3.one * step;             // scaling based on resolution
 
         for (int i = 0; i < points.Length; i++)
         {
-            Transform point = points[i] = Instantiate(pointPrefab);
+            Transform point = points[i] = Instantiate(m_prefab);
 
             point.localScale = scale;
             point.SetParent(transform, false);
         }
 
+        if (parallelism)
+        {
+            InitComputeShader();
+        }
     }
-
     void Update()
     {
         elapsed += Time.deltaTime;
 
-        if (transitioning)
-        {
-            if (elapsed >= transitionDuration)
-            {
-                transitioning = false;
-                elapsed = 0f; // Reset elapsed only after the transition is complete
-                type = type + 1; // Move to the next function
-            }
-        }
-        else if (elapsed >= functionDuration)
-        {
-            transitioning = true;
-            elapsed = 0f;
-        }
+        //if (transitioning)
+        //{
+        //    if (elapsed >= transitionDuration)
+        //    {
+        //        transitioning = false;
+        //        elapsed = 0f; // Reset elapsed only after the transition is complete
+        //        type = type + 1; // Move to the next function
+        //    }
+        //}
+        //else if (elapsed >= functionDuration)
+        //{
+        //    transitioning = true;
+        //    elapsed = 0f;
+        //}
 
-        if (transitioning)
+        //if (transitioning)
+        //{
+        //    TransitionFunction();
+        //}
+        //else
+        //{
+        //    UpdateFunction();
+        //}
+
+        if (parallelism)
         {
-            TransitionFunction();
+            UpdateComputeShader();
         }
         else
         {
@@ -87,6 +121,7 @@ public class Graph : MonoBehaviour
             for (int x = 0; x < resolution; x++, index++) // Iterate over columns (x-axis)
             {
                 float u = x * step - 1.0f;
+                u = Mathf.Clamp(u, -1.0f, 1.0f);
 
                 points[index].localPosition = FunctionLibrary.morph(u, v, Time.time, speed, from, to, progress);
             }
@@ -107,10 +142,51 @@ public class Graph : MonoBehaviour
             for (int x = 0; x < resolution; x++, index++) // Iterate over columns (x-axis)
             {
                 float u = x * step - 1.0f;
-
+                u = Mathf.Clamp(u, -1.0f, 1.0f);
                 points[index].localPosition = function(u, v, Time.time, speed);
             }
         }
         //END
+    }
+
+    void InitComputeShader()
+    {
+        // Compute Buffer
+        buffer_position = new ComputeBuffer(total, sizeof(float) * 3);    // vector contains -> 3 floats
+        kernel = shader.FindKernel("CSMain");
+
+        // Set constant parameters
+        float step = 2f / (resolution - 1);
+        shader.SetFloat("step", step);
+        shader.SetFloat("speed", speed);
+        shader.SetInt("resolution", resolution);
+
+
+        positions = new float3[total];
+        shader.SetBuffer(kernel, "positions", buffer_position);   // set buffer -> compute shader
+    }
+
+    void UpdateComputeShader()
+    {
+        shader.SetFloat("time", Time.time);   // as it not constant
+
+        int thread_x = Mathf.CeilToInt(resolution / 64.0f);       // thread for x 
+        int thread_y = Mathf.CeilToInt(resolution / 64.0f);       // thread for y
+
+        shader.Dispatch(kernel, thread_x, thread_y, 1);
+        buffer_position.GetData(positions);                       // storing data from compute shader -> positions[]
+
+        
+        for (int i = 0; i < total; i++){
+            points[i].localPosition = positions[i]; 
+        }
+    }
+
+    private void OnDestroy()
+    {
+        if (shader && parallelism)
+        {
+            buffer_position.Release();
+        }
     }
 }

@@ -1,16 +1,14 @@
-// Each #kernel tells which function to compile; you can have many kernels
 #pragma kernel CSMain
 #define PI 3.14159265358979323846
 
 RWStructuredBuffer<float3> _positions;
 
-uint _resolution;
+int _resolution; // Changed from uint to int
 float _step, _time;
-
 
 float2 GetUV(uint3 id)
 {
-    return id.xy * _step - 1.0f;
+    return (id.xy + 0.5) * _step - 1.0f; // Fixed UV calculation
 }
 
 void SetPosition(uint3 id, float3 position)
@@ -25,16 +23,15 @@ float3 Wave(float u, float v, float t)
 {
     float3 p;
     p.x = u;
-    p.y = sin(PI * (u + v + t));
+    p.y = 10.0f * sin(PI * (u + v + t));
     p.z = v;
     return p;
 }
 
-[numthreads(8,8,1)]
-void CSMain (uint3 id : SV_DispatchThreadID)
+[numthreads(8, 8, 1)]
+void CSMain(uint3 id : SV_DispatchThreadID)
 {
     float2 uv = GetUV(id);
     float3 position = Wave(uv.x, uv.y, _time);
     SetPosition(id, position);
 }
-

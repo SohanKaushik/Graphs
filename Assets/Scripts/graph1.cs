@@ -6,7 +6,6 @@ public class GPUGraph : MonoBehaviour
     [SerializeField, Range(10, 1000)] int resolution = 10;
     [SerializeField] float size, speed;
 
-    [SerializeField, Min(0)] float transitionDuration, functionDuration;
 
     [SerializeField]
     ComputeShader shader;
@@ -15,32 +14,35 @@ public class GPUGraph : MonoBehaviour
     [SerializeField] Mesh mesh;
 
 
-    //PRIVATES
-    private float elapsed = 0f;
-    bool transitioning;
 
     static readonly int
-        positionsId = Shader.PropertyToID("_Positions"),
-        resId = Shader.PropertyToID("_reesolution"),
+        positionsId = Shader.PropertyToID("_positions"),
+        resId = Shader.PropertyToID("_resolution"),
         stepId = Shader.PropertyToID("_step"),
         timeId = Shader.PropertyToID("_time");
 
     // Compute Shader Variables
     private ComputeBuffer buffer_position;
-    private ComputeBuffer buffer_scale;
     private int kernel;
     private float3[] positions;
 
     private int total;
     private float step;
 
+    private void Start()
+    {
+
+    }
     void OnEnable()
     {
-        buffer_position = new ComputeBuffer(resolution * resolution, sizeof(float) * 3);
+        total = resolution * resolution;
+        step = size;
+
+        buffer_position = new ComputeBuffer(total, 4 * 3);
+        positions = new float3[total]; // Initialize the positions array
 
         kernel = shader.FindKernel("CSMain");
     }
-
     void Update()
     {
         UpdateFunction();
@@ -48,25 +50,28 @@ public class GPUGraph : MonoBehaviour
 
     void UpdateFunction()
     {
-        float step = 2f / resolution;
         shader.SetInt(resId, resolution);
         shader.SetFloat(stepId, step);
         shader.SetFloat(timeId, Time.time);
 
-        // Find the kernel by name
-        int kernel = shader.FindKernel("CSMain");
+        shader.SetBuffer(kernel, positionsId, buffer_position);
 
-        shader.SetBuffer(kernel, "positions", buffer_position);
-
-        int groups = Mathf.CeilToInt(resolution / 8.0f);
+        int groups = Mathf.CeilToInt((float)resolution / 8.0f);
         shader.Dispatch(kernel, groups, groups, 1);
 
         var bounds = new Bounds(Vector3.zero, Vector3.one * (2f + 2f / resolution));
-        Graphics.DrawMeshInstancedProcedural(mesh, 0, material, bounds, buffer_position.count);
+
+        material.SetBuffer(positionsId, buffer_position);
+        material.SetFloat(stepId, step);
+
+        Graphics.DrawMeshInstancedProcedural(mesh, 0, material, bounds, resolution * resolution);
+
+        buffer_position.GetData(positions); // Optional: Debug positions
     }
+
     private void OnDisable()
     {
         buffer_position.Release();
-        buffer_position = null;
+        //buffer_position = null;
     }
 }

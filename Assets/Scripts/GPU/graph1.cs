@@ -1,11 +1,15 @@
 using System;
+using TMPro;
 using Unity.Mathematics;
 using UnityEngine;
+using UnityEngine.UI;
 public class GPUGraph : MonoBehaviour
 {
-    [SerializeField, Range(10, 1000)] int resolution = 10;
-    [SerializeField] float size, speed;
+    const int maxResolution = 5000;
 
+
+    [SerializeField] TextMeshProUGUI count;
+    [SerializeField] private Slider slider;
 
     [SerializeField]
     ComputeShader shader;
@@ -13,6 +17,7 @@ public class GPUGraph : MonoBehaviour
     [SerializeField] Material material;
     [SerializeField] Mesh mesh;
 
+    private int resolution;
 
 
     static readonly int
@@ -26,22 +31,26 @@ public class GPUGraph : MonoBehaviour
     private int kernel;
     private float3[] positions;
 
-    private int total;
     private float step;
 
-    private void Start()
+    private void Awake()
     {
 
-    }
-    void OnEnable()
-    {
-        total = resolution * resolution;
-        step = 2f /resolution;
+        // Set up slider limits
+        slider.minValue = 10;
+        slider.maxValue = maxResolution;
+        slider.wholeNumbers = true;
 
-        buffer_position = new ComputeBuffer(total, 4 * 3);
-        positions = new float3[total]; // Initialize the positions array
+        slider.onValueChanged.AddListener(OnSliderChanged);
+        resolution = (int)slider.value; // Set resolution to initial slider value
 
         kernel = shader.FindKernel("CSMain");
+    }
+
+    // Max Resolution -> creates buffer positions for maximum number of enteries;
+    void OnEnable()
+    {
+        buffer_position = new ComputeBuffer(maxResolution * maxResolution, sizeof(float) * 3);  // stride -> position has 3 floats
     }
     void Update()
     {
@@ -50,6 +59,8 @@ public class GPUGraph : MonoBehaviour
 
     void UpdateFunction()
     {
+        step = 2f / (resolution - 1);
+
         shader.SetInt(resId, resolution);
         shader.SetFloat(stepId, step);
         shader.SetFloat(timeId, Time.time);
@@ -65,13 +76,19 @@ public class GPUGraph : MonoBehaviour
         material.SetFloat(stepId, step);
 
         Graphics.DrawMeshInstancedProcedural(mesh, 0, material, bounds, resolution * resolution);
-
-        buffer_position.GetData(positions); // Optional: Debug positions
     }
+
+    public void OnSliderChanged(float value)
+    {
+        resolution = (int)value; // Update resolution from slider
+        int total = resolution * resolution;
+        count.text = total.ToString("N0");
+    }
+
 
     private void OnDisable()
     {
         buffer_position.Release();
-        //buffer_position = null;
+        buffer_position = null;
     }
 }

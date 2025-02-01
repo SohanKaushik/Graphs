@@ -2,7 +2,7 @@ using System;
 using Unity.Mathematics;
 using UnityEngine;
 public class GPUGraph : MonoBehaviour
-{ 
+{
     [SerializeField, Range(10, 1000)] int resolution = 10;
     [SerializeField] float size, speed;
 
@@ -36,7 +36,7 @@ public class GPUGraph : MonoBehaviour
     void OnEnable()
     {
         total = resolution * resolution;
-        step = size;
+        step = 2f /resolution;
 
         buffer_position = new ComputeBuffer(total, 4 * 3);
         positions = new float3[total]; // Initialize the positions array

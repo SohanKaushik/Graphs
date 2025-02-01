@@ -3,7 +3,7 @@ using UnityEngine;
 public static class FunctionLibrary
 {
     public delegate Vector3 Function(float u, float v, float t, float s);
-    static Function[] functions = { ripple, torus, helix, terrain, sphere, checkerboardWave};
+    static Function[] functions = { wave1, ripple, torus, helix, terrain, sphere, checkerboardWave};
 
     public enum FunctionType { Wave, MultiWave, Ripple, Sphere, Torus}
 

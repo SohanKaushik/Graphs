@@ -1,9 +1,5 @@
-using System.Threading;
-using System.Xml.Schema;
 using Unity.Mathematics;
-using Unity.VisualScripting;
 using UnityEngine;
-using UnityEngine.UIElements;
 
 public class Graph : MonoBehaviour
 {
@@ -62,14 +58,14 @@ public class Graph : MonoBehaviour
             point.SetParent(transform, false);
         }
 
-        if (parallelism)
-        {
-            InitComputeShader();
-        }
+        //if (parallelism)
+        //{
+        //    InitComputeShader();
+        //}
     }
     void Update()
     {
-        elapsed += Time.deltaTime;
+        //elapsed += Time.deltaTime;
 
         //if (transitioning)
         //{
@@ -95,14 +91,15 @@ public class Graph : MonoBehaviour
         //    UpdateFunction();
         //}
 
-        if (parallelism)
-        {
-            UpdateComputeShader();
-        }
-        else
-        {
-            UpdateFunction();
-        }
+        //if (parallelism)
+        //{
+        //    UpdateComputeShader();
+        //}
+        //else
+        //{
+        //}
+        UpdateFunction();
+
     }
 
 
